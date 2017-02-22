@@ -1,7 +1,14 @@
-assignments = []
-
+import logging
 from utils import *
 
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
+assignments = []
 
 def solved_judge(values):
     return all(len(values[s]) == 1 for s in boxes)
@@ -91,6 +98,9 @@ def naked_twins(values):
                     twin_v = v
 
             if twin_k:
+                logger.debug('twins found')
+                logger.debug(twin_k)
+                logger.debug(twin_v)
                 # Eliminate the naked twins as possibilities for their peers
                 for peer_box in alone_peers:
                     for digit in twin_v:
@@ -174,7 +184,6 @@ if __name__ == '__main__':
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
     values = grid_values(diag_sudoku_grid)
     display(values)
-    print("\n")
 
     display(eliminate(grid_values(diag_sudoku_grid)))
     values = solve(diag_sudoku_grid)
