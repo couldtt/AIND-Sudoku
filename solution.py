@@ -1,36 +1,6 @@
 assignments = []
 
-digits = '123456789'
-
-rows = 'ABCDEFGHI'
-cols = digits
-reversed_cols = cols[::-1]
-
-
-def cross(A, B):
-    "Cross product of elements in A and elements in B."
-    return [s + t for s in A for t in B]
-
-
-boxes = cross(rows, cols)
-row_units = [cross(row, cols) for row in rows]
-col_units = [cross(rows, col) for col in cols]
-square_units = [cross(rs, cs) for rs in ('ABC', 'DEF', 'GHI') for cs in ('123', '456', '789')]
-left_diag_units = [rows[i] + cols[i] for i in range(9)]
-right_diag_units = [rows[i] + reversed_cols[i] for i in range(9)]
-unitlist = row_units + col_units + square_units
-
-units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
-row_units = dict((s, [u for u in row_units if s in u]) for s in boxes)
-col_units = dict((s, [u for u in col_units if s in u]) for s in boxes)
-square_units = dict((s, [u for u in square_units if s in u]) for s in boxes)
-
-
-peers = dict((s, set(sum(units[s], [])) - {s}) for s in boxes)
-row_peers = dict((s, set(sum(row_units[s], [])) - {s}) for s in boxes)
-col_peers = dict((s, set(sum(col_units[s], [])) - {s}) for s in boxes)
-square_peers = dict((s, set(sum(square_units[s], [])) - {s}) for s in boxes)
-
+from utils import *
 
 
 def solved_judge(values):
@@ -78,20 +48,24 @@ def display(values):
 
 
 def eliminate(values):
+    """
+    Go through all the boxes, and whenever there is a box with a value, eliminate this value from the values of all
+    its peers, including diagonal peers.
+    Input: A sudoku in dictionary form.
+    Output: The resulting sudoku in dictionary form.
+    :param values: dict
+    :return: dict
+    """
     solved_boxes = [box for box in values.keys() if len(values[box]) == 1]
     for solved_box in solved_boxes:
         for peer_box in peers[solved_box]:
             values[peer_box] = values[peer_box].replace(values[solved_box], '')
 
-        if solved_box in left_diag_units:
-            for peer_box in left_diag_units:
-                if peer_box != solved_box:
-                    values[peer_box] = values[peer_box].replace(values[solved_box], '')
-
-        if solved_box in right_diag_units:
-            for peer_box in right_diag_units:
-                if peer_box != solved_box:
-                    values[peer_box] = values[peer_box].replace(values[solved_box], '')
+        for diag_units in [left_diag_units, right_diag_units]:
+            if solved_box in diag_units:
+                for peer_box in diag_units:
+                    if peer_box != solved_box:
+                        values[peer_box] = values[peer_box].replace(values[solved_box], '')
 
     return values
 
@@ -105,20 +79,19 @@ def naked_twins(values):
         the values dictionary with the naked twins eliminated from peers.
     """
 
-    # Find all instances of naked twins # Eliminate the naked twins as possibilities for their peers
+    # Find all instances of naked twins
     for box in boxes:
         v = values[box]
         for alone_peers in [row_peers[box], col_peers[box], square_peers[box]]:
             twin_k = None
             twin_v = None
-            count = 0
             for peer_box in alone_peers:
                 if len(v) == 2 and values[peer_box] == v:
-                    count += 1
                     twin_k = peer_box
                     twin_v = v
 
-            if twin_k and count == 1:
+            if twin_k:
+                # Eliminate the naked twins as possibilities for their peers
                 for peer_box in alone_peers:
                     for digit in twin_v:
                         if peer_box not in [box, twin_k]:
@@ -140,6 +113,13 @@ def find_fewest_box(values):
 
 
 def reduce_puzzle(values):
+    """
+    Iterate eliminate() and naked_twins(). If at some point, there is a box with no available values, return False.
+    If the sudoku is solved, return the sudoku.
+    If after an iteration of both functions, the sudoku remains the same, return the sudoku.
+    :param values: dict
+    :return: dict|bool
+    """
     stalled = False
     while not stalled:
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
@@ -153,6 +133,11 @@ def reduce_puzzle(values):
 
 
 def search(values):
+    """
+    "Using DFS search and propagation, create a search tree and solve the sudoku."
+    :param values: dict
+    :return: dict
+    """
     values = reduce_puzzle(values)
     if values is False:
         return False
